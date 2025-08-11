@@ -68,14 +68,11 @@ class DocumentHandler:
                     )  # type: ignore
             text = "\n".join(text_chunks)
             self.log.info(
-                "PDF read successfully",
-                pdf_path=pdf_path,
-                session_id=self.session_id,
-                pages=len(text_chunks),
+                f"PDF read successfully with pdf_path={pdf_path}, session_id={self.session_id}, pages={len(text_chunks)}"
             )
             return text
         except Exception as e:
-            self.log.error("Error reading PDF", error=str(e))
+            self.log.error(f"Error reading PDF: {e}")
             raise DocumentPortalException(f"Failed to read PDF: {e}") from e
 
 
@@ -99,6 +96,8 @@ if __name__ == "__main__":
 
     try:
         save_path = handler.save_pdf(dummy_file)
+        read_text = handler.read_pdf(save_path)
         print(f"PDF saved at: {save_path}")
+        print(f"PDF content:\n{read_text}")
     except DocumentPortalException as e:
         print(f"Error: {e}")
