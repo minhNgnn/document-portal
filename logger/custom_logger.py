@@ -15,7 +15,7 @@ class CustomLogger:
         logging.basicConfig(
             filename=self.log_file_path,
             format="[ %(asctime)s ] %(levelname)s %(name)s (line:%(lineno)d) - %(message)s",
-            level=logging.DEBUG,
+            level=logging.INFO,
         )
 
     def get_logger(self, name=__file__):
