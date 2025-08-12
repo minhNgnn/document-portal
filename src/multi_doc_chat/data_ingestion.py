@@ -13,7 +13,7 @@ from langchain_community.vectorstores import FAISS
 
 
 class DocumentIngestor:
-    SUPPORTED_FILE_TYPES = ["pdf", "docx", "txt", "md"]
+    SUPPORTED_FILE_TYPES = [".pdf", ".docx", ".txt", ".md"]
 
     def __init__(
         self,
@@ -84,11 +84,19 @@ class DocumentIngestor:
                     continue
 
                 docs = loader.load()
-                documents.extend(docs)
+                if docs:
+                    documents.extend(docs)
+                    self.log.info(f"Loaded {len(docs)} documents from {temp_path}")
+                else:
+                    self.log.warning(f"No content loaded from file: {temp_path}")
 
-                if not documents:
-                    self.log.error(f"No documents found for file: {temp_path}")
-                    raise DocumentPortalException("No documents found")
+            if not documents:
+                self.log.error(
+                    f"No documents found after processing all files in {self.session_id}"
+                )
+                raise DocumentPortalException(
+                    "No documents found after processing all files"
+                )
 
             self.log.info(f" All documents ingestion completed in {self.session_id}.")
             return self._create_retriever(documents)
@@ -100,11 +108,24 @@ class DocumentIngestor:
     def _create_retriever(self, documents):
         try:
             self.log.info("Creating retriever...")
+
+            # Validate documents
+            if not documents:
+                self.log.error("No documents provided to create retriever")
+                raise DocumentPortalException(
+                    "No documents provided to create retriever"
+                )
+
             splitter = RecursiveCharacterTextSplitter(
                 chunk_size=1000, chunk_overlap=300
             )
             chunks = splitter.split_documents(documents)
             self.log.info(f"Created {len(chunks)} chunks in {self.session_id}.")
+
+            # Validate chunks
+            if not chunks:
+                self.log.error("No chunks created from documents")
+                raise DocumentPortalException("No chunks created from documents")
 
             embeddings = self.model_loader.load_embeddings()
             vectorstore = FAISS.from_documents(chunks, embeddings)

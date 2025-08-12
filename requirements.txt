@@ -12,3 +12,4 @@ PyMuPDF
 streamlit
 langchain-core[tracing]
 pytest
+docx2txt
