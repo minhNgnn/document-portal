@@ -32,7 +32,28 @@ def test_document_ingestion_and_rag():
             uploaded_file.close()
         session_id = "test_multi_doc_session"
         rag = ConversationalRAG(session_id=session_id, retriever=retriever)
-        question = "what is attention is all you need paper about?"
+
+        # Test retrieval first
+        print("Testing retrieval...")
+        retrieved_docs = retriever.invoke("President Zelensky speech parliament")
+        print(f"Retrieved {len(retrieved_docs)} documents:")
+        for i, doc in enumerate(retrieved_docs):
+            print(f"Doc {i + 1}: {doc.page_content[:200]}...")
+
+        question = (
+            "What did President Zelensky say in his speech to the European Parliament?"
+        )
+
+        # Debug the context passing
+        print(f"\nTesting question: {question}")
+        print("Debug: Testing context formatting...")
+
+        # Test the retriever directly
+        docs = retriever.invoke(question)
+        context = "\n\n".join([doc.page_content for doc in docs])
+        print(f"Context length: {len(context)}")
+        print(f"Context preview: {context[:500]}...")
+
         answer = rag.invoke(question)
         print(f"Question: {question}")
         print(f"Answer: {answer}")
