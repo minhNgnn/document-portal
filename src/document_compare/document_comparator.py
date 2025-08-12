@@ -22,7 +22,7 @@ class DocumentComparatorLLM:
         )
         self.prompt = PROMPT_REGISTRY[PromptType.DOCUMENT_COMPARISON.value]
         self.chain = self.prompt | self.llm | self.parser
-        self.log.info("DocumentComparatorLLM initialized", model=self.llm)
+        self.log.info(f"DocumentComparatorLLM initialized model={self.llm}")
 
     def compare_documents(self, combined_docs: str) -> pd.DataFrame:
         """

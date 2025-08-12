@@ -1,4 +1,5 @@
 langchain
+pandas
 python-dotenv
 ipykernel
 langchain_groq
