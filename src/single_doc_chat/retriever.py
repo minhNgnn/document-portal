@@ -1,7 +1,9 @@
 import sys
 import os
-from langchain.schema.runnable import RunnableWithMessageHistory
+from langchain_core.runnables.history import RunnableWithMessageHistory
 from exception.custom_exception import DocumentPortalException
+from langchain.chains.combine_documents import create_stuff_documents_chain
+from langchain.chains import create_retrieval_chain, create_history_aware_retriever
 from logger.custom_logger import CustomLogger
 from model.models import PromptType
 from prompts.prompt_library import PROMPT_REGISTRY
@@ -91,9 +93,20 @@ class ConversationRAG:
                 f"Failed to load retriever from FAISS: {sys.exc_info()}"
             ) from e
 
-    def invoke(self):
+    def invoke(self, user_input: str):
         try:
-            pass
+            response = self.chain.invoke(
+                {"input": user_input},
+                config={"configurable": {"session_id": self.session_id}},
+            )
+            answer = response.get("answer", "No answer.")
+            if not answer:
+                self.log.warning(f"No answer found for user input: {self.session_id}")
+
+            self.log.info(
+                f"Conversation RAG invoked successfully for session: {self.session_id}"
+            )
+            return answer
         except Exception as e:
             self.log.error(f"Error invoking conversation RAG: {e}")
             raise DocumentPortalException(
