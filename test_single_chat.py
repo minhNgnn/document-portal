@@ -10,9 +10,11 @@ FAISS_INDEX_PATH = Path("faiss_index")
 
 def test_conversation_rag(pdf_path: str, question: str):
     try:
-        model_loader = ModelLoader(pdf_path)
+        model_loader = ModelLoader()
 
-        if FAISS_INDEX_PATH.exists():
+        # Check if FAISS index exists and has the required files
+        index_file = FAISS_INDEX_PATH / "index.faiss"
+        if FAISS_INDEX_PATH.exists() and index_file.exists():
             print("Loading FAISS index...")
             embeddings = model_loader.load_embeddings()
             vector_store = FAISS.load_local(
@@ -30,7 +32,7 @@ def test_conversation_rag(pdf_path: str, question: str):
                 retriever = ingestor.ingest_files(uploaded_files)
         print("Running Conversational RAG...")
         session_id = "test_session"
-        rag = ConversationRAG(retriever, session_id)
+        rag = ConversationRAG(session_id, retriever)
 
         response = rag.invoke(question)
         print(f"\nQuestion :{question} \nResponse: {response}")
@@ -40,7 +42,7 @@ def test_conversation_rag(pdf_path: str, question: str):
 
 
 if __name__ == "__main__":
-    pdf_path = "path/to/your/pdf"
+    pdf_path = "/Users/pc/Developer/document-portal/data/single_document_chat/NIPS-2017-attention-is-all-you-need-Paper.pdf"
     question = "What is the main topic of the document?"
 
     if not Path(pdf_path).exists():

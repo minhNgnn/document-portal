@@ -7,7 +7,7 @@ from datetime import datetime
 import uuid
 from langchain_community.document_loaders import PyPDFLoader
 from langchain_text_splitters import RecursiveCharacterTextSplitter
-from langchain.vectorstores import FAISS
+from langchain_community.vectorstores import FAISS
 
 
 class SingleDocIngestor:

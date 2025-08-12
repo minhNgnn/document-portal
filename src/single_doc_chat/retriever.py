@@ -8,7 +8,8 @@ from logger.custom_logger import CustomLogger
 from model.models import PromptType
 from prompts.prompt_library import PROMPT_REGISTRY
 from utils.model_loader import ModelLoader
-from langchain.vectorstores import FAISS
+from langchain_community.vectorstores import FAISS
+from langchain_community.chat_message_histories import ChatMessageHistory
 
 
 class ConversationRAG:
@@ -18,6 +19,10 @@ class ConversationRAG:
             self.session_id = session_id
             self.retriever = retriever
             self.llm = self._load_llm()
+
+            # Initialize session history storage
+            self.store = {}
+
             self.contextualize_prompt = PROMPT_REGISTRY[
                 PromptType.CONTEXTUALIZE_QUESTION
             ]
@@ -66,14 +71,10 @@ class ConversationRAG:
                 f"Failed to load LLM: {sys.exc_info()}"
             ) from e
 
-    def _get_session_history(self):
-        try:
-            pass
-        except Exception as e:
-            self.log.error(f"Error getting session history: {e}")
-            raise DocumentPortalException(
-                f"Failed to get session history: {sys.exc_info()}"
-            ) from e
+    def _get_session_history(self, session_id: str) -> ChatMessageHistory:
+        if session_id not in self.store:
+            self.store[session_id] = ChatMessageHistory()
+        return self.store[session_id]
 
     def load_retriever_from_faiss(self, index_path: str):
         try:
