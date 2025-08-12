@@ -6,6 +6,8 @@ from utils.model_loader import ModelLoader
 from datetime import datetime
 import uuid
 from langchain_community.document_loaders import PyPDFLoader
+from langchain_text_splitters import RecursiveCharacterTextSplitter
+from langchain.vectorstores import FAISS
 
 
 class SingleDocIngestor:
@@ -51,9 +53,30 @@ class SingleDocIngestor:
                 f"Failed to ingest files: {sys.exc_info()}"
             ) from e
 
-    def _create_retriever(self):
+    def _create_retriever(self, documents):
+        """Create a retriever with chunking from the ingested documents.
+
+        Raises:
+            DocumentPortalException: If retriever creation fails.
+        """
         try:
-            pass
+            splitter = RecursiveCharacterTextSplitter(
+                chunk_size=1000, chunk_overlap=300
+            )
+            chunks = splitter.split_documents(documents)
+            self.log.info(f"Successfully created retriever with {len(chunks)} chunks.")
+
+            embeddings = self.model_loader.load_embeddings()
+            vector_store = FAISS.from_documents(documents=chunks, embedding=embeddings)
+            self.log.info(
+                f"Successfully created FAISS vector store with {len(chunks)} chunks."
+            )
+
+            retriever = vector_store.as_retriever(
+                search_type="similarity", search_kwargs={"k": 5}
+            )
+            self.log.info("Retriever created successfully")
+            return retriever
         except Exception as e:
             self.log.error(f"Error creating retriever: {e}")
             raise DocumentPortalException(
