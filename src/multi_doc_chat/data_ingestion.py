@@ -5,7 +5,8 @@ from logger.custom_logger import CustomLogger
 from utils.model_loader import ModelLoader
 from datetime import datetime
 import uuid
-from langchain_community.document_loaders import PyPDFLoader
+from langchain_community.document_loaders import PyPDFLoader, Docx2txtLoader, TextLoader
+from langchain_community.document_loaders.markdown import UnstructuredMarkdownLoader as MarkdownLoader
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_community.vectorstores import FAISS
 
@@ -34,15 +35,54 @@ class DocumentIngestor:
             self.log.error(f"Error initializing DocumentIngestor: {e}")
             raise DocumentPortalException("Failed to initialize DocumentIngestor")
 
-    def ingest_files(self):
+    def ingest_files(self, uploaded_files):
         try:
             self.log.info("Ingesting files...")
-            # Implement file ingestion logic here
+            documents = []
+
+            for uploaded_file in uploaded_files:
+                ext = Path(uploaded_file.name).suffix.lower()
+                if ext not in self.SUPPORTED_FILE_TYPES:
+                    self.log.warning(f"Unsupported file type: {ext}")
+                    continue
+                unique_filename = f"{uuid.uuid4().hex[:8]}{ext}"
+                temp_path = self.session_temp_dir / unique_filename
+
+                with open(temp_path, "wb") as f:
+                    f.write(uploaded_file.read())
+                self.log.info(f"Saved uploaded file to: {temp_path} in {self.session_id}")
+
+                if ext == ".pdf":
+                    self.log.info(f"Processing PDF file: {temp_path}")
+                    loader = PyPDFLoader(str(temp_path))
+                elif ext == ".docx":
+                    self.log.info(f"Processing DOCX file: {temp_path}")
+                    loader = Docx2txtLoader(str(temp_path))
+                elif ext == ".txt":
+                    self.log.info(f"Processing TXT file: {temp_path}")
+                    loader = TextLoader(str(temp_path))
+                elif ext == ".md":
+                    self.log.info(f"Processing MD file: {temp_path}")
+                    loader = MarkdownLoader(str(temp_path))
+                else:
+                    self.log.warning(f"Unsupported file type: {ext}")
+                    continue
+
+                docs = loader.load()
+                documents.extend(docs)
+
+                if not documents:
+                    self.log.error(f"No documents found for file: {temp_path}")
+                    raise DocumentPortalException("No documents found")
+
+            self.log.info(f" All documents ingestion completed in {self.session_id}.")
+            return self._create_retriever(documents)
+        
         except Exception as e:
             self.log.error(f"Error ingesting files: {e}")
             raise DocumentPortalException("Failed to ingest files")
 
-    def _create_retriever(self):
+    def _create_retriever(self, documents):
         try:
             self.log.info("Creating retriever...")
             # Implement retriever creation logic here
