@@ -1,10 +1,12 @@
 import sys
-
-
+import os
+from langchain.schema.runnable import RunnableWithMessageHistory
 from exception.custom_exception import DocumentPortalException
 from logger.custom_logger import CustomLogger
 from model.models import PromptType
 from prompts.prompt_library import PROMPT_REGISTRY
+from utils.model_loader import ModelLoader
+from langchain.vectorstores import FAISS
 
 
 class ConversationRAG:
@@ -53,7 +55,9 @@ class ConversationRAG:
 
     def _load_llm(self):
         try:
-            pass
+            llm = ModelLoader().load_llm()
+            self.log.info(f"LLM loaded successfully: {llm}")
+            return llm
         except Exception as e:
             self.log.error(f"Error loading LLM: {e}")
             raise DocumentPortalException(
@@ -69,9 +73,18 @@ class ConversationRAG:
                 f"Failed to get session history: {sys.exc_info()}"
             ) from e
 
-    def load_retriever_from_faiss(self):
+    def load_retriever_from_faiss(self, index_path: str):
         try:
-            pass
+            embedding_model = ModelLoader().load_embedding_model()
+            if not os.path.isdir(index_path):
+                self.log.error(f"FAISS index path does not exist: {index_path}")
+                raise FileExistsError(f"FAISS index path does not exist: {index_path}")
+            vector_store = FAISS.load_local(index_path, embedding_model)
+            self.log.info(f"FAISS vector store loaded successfully from: {index_path}")
+            return vector_store.as_retriever(
+                search_type="similarity", search_kwargs={"k": 5}
+            )
+
         except Exception as e:
             self.log.error(f"Error loading retriever from FAISS: {e}")
             raise DocumentPortalException(
