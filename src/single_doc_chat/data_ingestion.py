@@ -2,13 +2,25 @@ from pathlib import Path
 import sys
 from exception.custom_exception import DocumentPortalException
 from logger.custom_logger import CustomLogger
+from utils.model_loader import ModelLoader
 
 
 class SingleDocIngestor:
-    def __init__(self, pdf_path: Path):
+    def __init__(
+        self,
+        data_dir: str = "data/single_document_chat",
+        faiss_dir: str = "faiss_index",
+    ):
         try:
             self.log = CustomLogger().get_logger(__name__)
-            self.pdf_path = pdf_path
+            self.data_dir = Path(data_dir)
+            self.data_dir.mkdir(parents=True, exist_ok=True)
+            self.faiss_dir = Path(faiss_dir)
+            self.faiss_dir.mkdir(parents=True, exist_ok=True)
+            self.model_loader = ModelLoader()
+            self.log.info(
+                f"SingleDocIngestor initialized successfully with data directory: {self.data_dir} and FAISS directory: {self.faiss_dir}"
+            )
         except Exception as e:
             self.log.error(f"Error initializing SingleDocIngestor: {e}")
             raise DocumentPortalException(
