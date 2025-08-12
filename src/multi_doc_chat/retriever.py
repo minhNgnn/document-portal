@@ -1,7 +1,9 @@
 import sys
 import os
 from operator import itemgetter
+from typing import Optional, List
 from langchain_core.output_parsers import StrOutputParser
+from langchain_core.messages import BaseMessage
 from exception.custom_exception import DocumentPortalException
 from logger.custom_logger import CustomLogger
 from model.models import PromptType
@@ -55,9 +57,34 @@ class ConversationalRAG:
             self.log.error(f"Error loading FAISS retriever: {e}")
             raise DocumentPortalException("Failed to load FAISS retriever", sys) from e
 
-    def invoke(self):
+    def invoke(
+        self, user_input: str, chat_history: Optional[List[BaseMessage]] = None
+    ) -> str:
+        """
+
+        Args:
+            user_input (str): _description_
+            chat_history (Optional[List[BaseMessage]], optional): _description_. Defaults to None.
+
+        Raises:
+            DocumentPortalException: _description_
+
+        Returns:
+            str: _description_
+        """
         try:
-            pass
+            chat_history = chat_history or []
+            payload = {"input": user_input, "chat_history": chat_history}
+            answer = self.lcel_chain.invoke(payload)
+            if not answer:
+                self.log.warning(
+                    f"No answer returned from LCEL chain in {self.session_id}"
+                )
+                return "No answer found"
+            self.log.info(
+                f"Answer returned from LCEL chain in {self.session_id}: {answer}"
+            )
+            return answer
         except Exception as e:
             self.log.error(f"Error invoking ConversationalRAG: {e}")
             raise DocumentPortalException(
