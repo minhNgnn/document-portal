@@ -14,24 +14,34 @@ class ConversationRAG:
             self.session_id = session_id
             self.retriever = retriever
             self.llm = self._load_llm()
-            self.contextualize_prompt = PROMPT_REGISTRY[PromptType.CONTEXTUALIZE_QUESTION]
+            self.contextualize_prompt = PROMPT_REGISTRY[
+                PromptType.CONTEXTUALIZE_QUESTION
+            ]
             self.qa_prompt = PROMPT_REGISTRY[PromptType.CONTEXT_QA.value]
 
-            self.history_aware_retriever = create_history_aware_retriever(self.llm, self.retriever, self.contextualize_prompt)
-            self.log.info(f"History-aware retriever created successfully with {session_id}")
+            self.history_aware_retriever = create_history_aware_retriever(
+                self.llm, self.retriever, self.contextualize_prompt
+            )
+            self.log.info(
+                f"History-aware retriever created successfully with {session_id}"
+            )
 
             self.qa_chain = create_stuff_documents_chain(self.llm, self.qa_prompt)
-            self.rag_chain = create_retrieval_chain(self.history_aware_retriever, self.qa_chain)
+            self.rag_chain = create_retrieval_chain(
+                self.history_aware_retriever, self.qa_chain
+            )
             self.log.info(f"ConversationRAG initialized successfully with {session_id}")
 
             self.chain = RunnableWithMessageHistory(
                 self.rag_chain,
                 self._get_session_history,
-                input_messages_key = "input",
-                history_messages_key = "chat_history",
-                output_messages_key = "answer"
+                input_messages_key="input",
+                history_messages_key="chat_history",
+                output_messages_key="answer",
             )
-            self.log.info(f"RunnableWithMessageHistory created successfully with {session_id}")
+            self.log.info(
+                f"RunnableWithMessageHistory created successfully with {session_id}"
+            )
 
         except Exception as e:
             CustomLogger().get_logger(__name__).error(
