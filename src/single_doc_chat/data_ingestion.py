@@ -72,6 +72,10 @@ class SingleDocIngestor:
                 f"Successfully created FAISS vector store with {len(chunks)} chunks."
             )
 
+            # Save the vector store to disk
+            vector_store.save_local(str(self.faiss_dir))
+            self.log.info(f"FAISS vector store saved to {self.faiss_dir}")
+
             retriever = vector_store.as_retriever(
                 search_type="similarity", search_kwargs={"k": 5}
             )
