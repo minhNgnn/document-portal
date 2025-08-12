@@ -25,6 +25,9 @@ class DocumentComparatorLLM:
         self.log.info("DocumentComparatorLLM initialized", model=self.llm)
 
     def compare_documents(self, combined_docs: str) -> pd.DataFrame:
+        """
+        Compare two documents and return the differences.
+        """
         try:
             inputs = {
                 "combined_docs": combined_docs,
@@ -33,9 +36,7 @@ class DocumentComparatorLLM:
 
             self.log.info("Invoking document comparison LLM chain")
             response = self.chain.invoke(inputs)
-            self.log.info(
-                "Chain invoked successfully", response_preview=str(response)[:200]
-            )
+            self.log.info(f"Chain invoked successfully: {str(response)[:200]}")
             return self._format_response(response)
         except Exception as e:
             self.log.error("Error in compare_documents", error=str(e))
