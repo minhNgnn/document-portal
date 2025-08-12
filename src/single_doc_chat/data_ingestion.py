@@ -3,6 +3,9 @@ import sys
 from exception.custom_exception import DocumentPortalException
 from logger.custom_logger import CustomLogger
 from utils.model_loader import ModelLoader
+from datetime import datetime
+import uuid
+from langchain_community.document_loaders import PyPDFLoader
 
 
 class SingleDocIngestor:
@@ -27,9 +30,21 @@ class SingleDocIngestor:
                 f"Failed to initialize SingleDocIngestor: {sys.exc_info()}"
             ) from e
 
-    def ingest_files(self):
+    def ingest_files(self, uploaded_files):
         try:
-            pass
+            documents = []
+            for uploaded_file in uploaded_files:
+                unique_filename = f"session_{datetime.now().strftime('%Y%m%d_%H%M%S')}_{uuid.uuid4().hex[:8]}.pdf"
+                temp_path = self.data_dir / unique_filename
+
+                with open(temp_path, "wb") as f_out:
+                    f_out.write(uploaded_file.read())
+                self.log.info(f"File saved to {temp_path}")
+                loader = PyPDFLoader(str(temp_path))
+                docs = loader.load()
+                documents.extend(docs)
+            self.log.info(f"Successfully ingested {len(documents)} documents.")
+            return self._create_retriever(documents)
         except Exception as e:
             self.log.error(f"Error during file ingestion: {e}")
             raise DocumentPortalException(
