@@ -10,12 +10,48 @@ import shutil
 
 from logger.custom_logger import CustomLogger
 from exception.custom_exception import DocumentPortalException
-from utils.model_loader import ModelLoader
 
-from utils.file_io import _session_id, save_uploaded_files
-from utils.document_ops import load_documents, concat_for_analysis, concat_for_comparison
 
 SUPPORTED_EXTENSIONS = {".pdf", ".docx", ".txt"}
+
+
+class FaissManager:
+    def __init__(self):
+        try:
+            self.log = CustomLogger().get_logger(__name__)
+        except Exception as e:
+            self.log.error(f"Error initializing FaissManager: {e}")
+            raise DocumentPortalException(
+                f"Failed to initialize FaissManager: {e}"
+            ) from e
+
+    def _exists(self):
+        try:
+            pass
+        except Exception as e:
+            self.log.error(f"Error checking existence: {e}")
+            raise DocumentPortalException(f"Failed to check existence: {e}") from e
+
+    def _fingerprint(self):
+        try:
+            pass
+        except Exception as e:
+            self.log.error(f"Error generating fingerprint: {e}")
+            raise DocumentPortalException(f"Failed to generate fingerprint: {e}") from e
+
+    def _save_meta(self):
+        try:
+            pass
+        except Exception as e:
+            self.log.error(f"Error saving metadata: {e}")
+            raise DocumentPortalException(f"Failed to save metadata: {e}") from e
+
+    def load_or_create(self):
+        try:
+            pass
+        except Exception as e:
+            self.log.error(f"Error loading or creating: {e}")
+            raise DocumentPortalException(f"Failed to load or create: {e}") from e
 
 
 class DocumentHandler:
@@ -81,6 +117,20 @@ class DocumentHandler:
         except Exception as e:
             self.log.error(f"Error reading PDF: {e}")
             raise DocumentPortalException(f"Failed to read PDF: {e}") from e
+
+
+class ChatIngestor:
+    def __init__(self):
+        pass
+
+    def _resolve_dir(self):
+        pass
+
+    def _split(self):
+        pass
+
+    def build_retriever(self):
+        pass
 
 
 class DocumentComparator:
