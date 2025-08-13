@@ -7,8 +7,6 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from pathlib import Path
 
-from streamlit import title
-
 from src.data_ingestion.data_ingestion import (
     DocumentHandler,
     DocumentComparator,
@@ -49,6 +47,79 @@ async def serve_ui(request: Request):
 def health() -> Dict[str, str]:
     return {"status": "ok", "service": "document-portal"}
 
-# @app.post("/compare")
-# async def compare_documents(request: Request):
-    
+# ---------- ANALYZE ----------
+@app.post("/analyze")
+async def analyze_document(file: UploadFile = File(...)) -> Any:
+    try:
+        dh = DocumentHandler()
+        saved_path = dh.save_pdf(FastAPIFileAdapter(file))
+        text = _read_pdf_via_handler(dh, saved_path)
+        analyzer = DocumentAnalyzer()
+        result = analyzer.analyze_document(text)
+        return JSONResponse(content=result)
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Analysis failed: {e}")
+
+@app.post("/compare")
+async def compare_documents(reference: UploadFile = File(...), actual: UploadFile = File(...)) -> Any:
+    try:
+        dc = DocumentComparator()
+        ref_path, act_path = dc.save_uploaded_files(
+            FastAPIFileAdapter(reference), FastAPIFileAdapter(actual)
+        )
+        _ = ref_path, act_path
+        combined_text = dc.combine_documents()
+        comp = DocumentComparatorLLM()
+        df = comp.compare_documents(combined_text)
+        return {"rows": df.to_dict(orient="records"), "session_id": dc.session_id}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Comparison failed: {e}")
+
+@app.post("/chat/index")
+async def chat_build_index(
+    files: List[UploadFile] = File(...),
+    session_id: Optional[str] = Form(None),
+    use_session_dirs: bool = Form(True),
+    chunk_size: int = Form(1000),
+    chunk_overlap: int = Form(200),
+    k: int = Form(5),
+) -> Any:
+    try:
+        wrapped = [FastAPIFileAdapter(f) for f in files]
+        # ci = ChatIngestor(
+        #     temp_base=UPLOAD_BASE,
+        #     faiss_base=FAISS_BASE,
+        #     use_session_dirs=use_session_dirs,
+        #     session_id=session_id or None,
+        # )
+        # NOTE: ensure your ChatIngestor saves with index_name="index" or FAISS_INDEX_NAME
+        # e.g., if it calls FAISS.save_local(dir, index_name=FAISS_INDEX_NAME)
+        ci.built_retriver(  # if your method name is actually build_retriever, fix it there as well
+            wrapped, chunk_size=chunk_size, chunk_overlap=chunk_overlap, k=k
+        )
+        return {"session_id": ci.session_id, "k": k, "use_session_dirs": use_session_dirs}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Indexing failed: {e}")
+
+# ---------- Helpers ----------
+class FastAPIFileAdapter:
+    """Adapt FastAPI UploadFile -> .name + .getbuffer() API"""
+    def __init__(self, uf: UploadFile):
+        self._uf = uf
+        self.name = uf.filename
+    def getbuffer(self) -> bytes:
+        self._uf.file.seek(0)
+        return self._uf.file.read()
+
+def _read_pdf_via_handler(handler: DocumentHandler, path: str) -> str:
+    if hasattr(handler, "read_pdf"):
+        return handler.read_pdf(path)  # type: ignore
+    if hasattr(handler, "read_"):
+        return handler.read_(path)  # type: ignore
+    raise RuntimeError("DocHandler has neither read_pdf nor read_ method.")
