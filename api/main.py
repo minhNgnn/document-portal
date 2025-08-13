@@ -34,7 +34,7 @@ app.add_middleware(
 )
 
 BASE_DIR = Path(__file__).resolve().parent.parent
-app.mount("/static", StaticFiles(directory="static"), name="static")
+app.mount("/static", StaticFiles(directory=str(BASE_DIR / "static")), name="static")
 templates = Jinja2Templates(directory=str(BASE_DIR / "templates"))
 
 @app.get("/", response_class=HTMLResponse)
@@ -89,19 +89,20 @@ async def chat_build_index(
     k: int = Form(5),
 ) -> Any:
     try:
-        wrapped = [FastAPIFileAdapter(f) for f in files]
-        # ci = ChatIngestor(
-        #     temp_base=UPLOAD_BASE,
-        #     faiss_base=FAISS_BASE,
-        #     use_session_dirs=use_session_dirs,
-        #     session_id=session_id or None,
+        # wrapped = [FastAPIFileAdapter(f) for f in files]
+        # # ci = ChatIngestor(
+        # #     temp_base=UPLOAD_BASE,
+        # #     faiss_base=FAISS_BASE,
+        # #     use_session_dirs=use_session_dirs,
+        # #     session_id=session_id or None,
+        # # )
+        # # NOTE: ensure your ChatIngestor saves with index_name="index" or FAISS_INDEX_NAME
+        # # e.g., if it calls FAISS.save_local(dir, index_name=FAISS_INDEX_NAME)
+        # ci.built_retriver(  # if your method name is actually build_retriever, fix it there as well
+        #     wrapped, chunk_size=chunk_size, chunk_overlap=chunk_overlap, k=k
         # )
-        # NOTE: ensure your ChatIngestor saves with index_name="index" or FAISS_INDEX_NAME
-        # e.g., if it calls FAISS.save_local(dir, index_name=FAISS_INDEX_NAME)
-        ci.built_retriver(  # if your method name is actually build_retriever, fix it there as well
-            wrapped, chunk_size=chunk_size, chunk_overlap=chunk_overlap, k=k
-        )
-        return {"session_id": ci.session_id, "k": k, "use_session_dirs": use_session_dirs}
+        # return {"session_id": ci.session_id, "k": k, "use_session_dirs": use_session_dirs}
+        pass
     except HTTPException:
         raise
     except Exception as e:
