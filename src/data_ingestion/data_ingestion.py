@@ -3,11 +3,15 @@ import os
 import uuid
 from pathlib import Path
 from datetime import datetime, timezone
-from typing import Optional
+from typing import Any, Dict, Optional
 
 import fitz  # PyMuPDF
 import shutil
+import json
 
+
+from utils.model_loader import ModelLoader
+from langchain_community.vectorstores import FAISS
 from logger.custom_logger import CustomLogger
 from exception.custom_exception import DocumentPortalException
 
@@ -16,9 +20,25 @@ SUPPORTED_EXTENSIONS = {".pdf", ".docx", ".txt"}
 
 
 class FaissManager:
-    def __init__(self):
+    def __init__(self, index_dir: str, model_loader: Optional[ModelLoader] = None):
         try:
             self.log = CustomLogger().get_logger(__name__)
+            self.index_dir = Path(index_dir)
+            self.index_dir.mkdir(parents=True, exist_ok=True)
+
+            self.meta_path = self.index_dir / "ingested_meta.json"
+            self._meta: Dict[str, Any] = {"rows": {}}
+
+            if self.meta_path.exists():
+                self._meta = json.loads(self.meta_path.read_text(encoding="utf-8")) or {
+                    "rows": {}
+                }
+            else:
+                self.log.error(f"Metadata file not found: {self.meta_path}")
+
+            self.model_loader = model_loader or ModelLoader()
+            self.emb = self.model_loader.load_embeddings()
+            self.vectorstore: Optional[FAISS] = None
         except Exception as e:
             self.log.error(f"Error initializing FaissManager: {e}")
             raise DocumentPortalException(
