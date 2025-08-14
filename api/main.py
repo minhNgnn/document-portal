@@ -8,6 +8,7 @@ from fastapi.templating import Jinja2Templates
 from pathlib import Path
 
 from src.data_ingestion.data_ingestion import (
+    ChatIngestor,
     DocumentHandler,
     DocumentComparator,
 )
@@ -98,7 +99,26 @@ async def chat_build_index(
     chunk_overlap: int = Form(200),
     k: int = Form(5),
 ) -> Any:
-    pass
+    try:
+        wrapped = [FastAPIFileAdapter(f) for f in files]
+        chat_ingestor = ChatIngestor(
+            temp_base=UPLOAD_BASE,
+            faiss_base=FAISS_BASE,
+            use_session_dirs=use_session_dirs,
+            session_id=session_id or None,
+        )
+        chat_ingestor.build_retriever(
+            wrapped, chunk_size=chunk_size, chunk_overlap=chunk_overlap, k=k
+        )
+        return {
+            "session_id": chat_ingestor.session_id,
+            "k": k,
+            "use_session_dirs": use_session_dirs,
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Indexing failed: {e}")
 
 
 @app.post("/chat/query")
