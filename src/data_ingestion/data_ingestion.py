@@ -1,4 +1,5 @@
 from __future__ import annotations
+import hashlib
 import os
 import uuid
 from pathlib import Path
@@ -45,18 +46,45 @@ class FaissManager:
                 f"Failed to initialize FaissManager: {e}"
             ) from e
 
-    def _exists(self):
+    def _exists(self) -> bool:
         try:
-            pass
+            return (self.index_dir / "index.faiss").exists() and (
+                self.index_dir / "index.pkl"
+            ).exists()
         except Exception as e:
             self.log.error(f"Error checking existence: {e}")
             raise DocumentPortalException(f"Failed to check existence: {e}") from e
 
-    def _fingerprint(self):
+    @staticmethod
+    def _fingerprint(document_text: str, metadata: Dict[str, Any]) -> str:
+        """
+        Creates a unique identifier for documents based on their source file
+        and row position, or falls back to content hashing if source information is unavailable.
+        The fingerprint is used by the FAISS vector store to track which documents have
+        already been processed and avoid re-ingesting the same content.
+
+        Args:
+            document_text (str): The text content of the document chunk
+            metadata (Dict[str, Any]): Document metadata containing source file info and position
+                Expected keys:
+                - 'source' or 'file_path': Path to the source file
+                - 'row_id': Position/index of the chunk within the source file
+
+        Returns:
+            str: Unique fingerprint string in format "source_file::row_id" or SHA256 hash
+        """
         try:
-            pass
+            source_file = metadata.get("source") or metadata.get("file_path")
+            row_identifier = metadata.get("row_id")
+
+            if source_file is not None:
+                row_part = "" if row_identifier is None else str(row_identifier)
+                return f"{source_file}::{row_part}"
+
+            content_hash = hashlib.sha256(document_text.encode("utf-8")).hexdigest()
+            return content_hash
+
         except Exception as e:
-            self.log.error(f"Error generating fingerprint: {e}")
             raise DocumentPortalException(f"Failed to generate fingerprint: {e}") from e
 
     def _save_meta(self):
